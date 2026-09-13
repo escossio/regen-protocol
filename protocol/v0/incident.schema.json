@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "REGEN IncidentEnvelope V0",
+  "type": "object",
+  "properties": {
+    "protocol_version": {
+      "type": "string",
+      "const": "0"
+    },
+    "message_type": {
+      "type": "string",
+      "const": "INCIDENT"
+    },
+    "incident_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instance": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "system"
+      ],
+      "additionalProperties": false
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "phase"
+      ],
+      "additionalProperties": true
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "denied": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "available",
+        "denied",
+        "unavailable"
+      ],
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "mutation_allowed": {
+          "type": "boolean"
+        },
+        "retry_allowed": {
+          "type": "boolean"
+        },
+        "human_approval_required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mutation_allowed",
+        "retry_allowed",
+        "human_approval_required"
+      ],
+      "additionalProperties": false
+    },
+    "desired_outcome": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "protocol_version",
+    "message_type",
+    "incident_id",
+    "source",
+    "occurred_at",
+    "summary",
+    "state",
+    "facts",
+    "unknowns",
+    "capabilities",
+    "constraints",
+    "desired_outcome"
+  ],
+  "additionalProperties": false
+}

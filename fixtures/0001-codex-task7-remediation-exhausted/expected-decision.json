@@ -1,0 +1,41 @@
+{
+  "protocol_version": "0",
+  "message_type": "DECISION",
+  "incident_id": "0001-codex-task7-remediation-exhausted",
+  "decision_id": "0001-read-only-investigation",
+  "decision_class": "INVESTIGATE_READ_ONLY",
+  "summary": "Inspect remaining read-only evidence before attributing a root cause.",
+  "rationale_summary": "The caller reports three unsuccessful worker attempts, no local verification, no changed paths, and no preserved original failure or last message. Remediation exhaustion is the final stop condition, not evidence of a specific root cause. Confidence concerns the investigation strategy; the cause remains undetermined.",
+  "requested_evidence": [
+    "Sanitized supervisor state and journal chronology for the three attempts.",
+    "Runtime tree inventory and presence or absence of attempt artifacts, without modifying them.",
+    "Codex CLI version, help and non-executing readiness metadata; no worker launch or authentication mutation.",
+    "Sanitized Codex logs and metadata, if available, within the attempt window; omit credentials and private reasoning.",
+    "Read-only worktree status, HEAD/base equality and changed-path evidence."
+  ],
+  "requested_capabilities": [
+    "READ_SUPERVISOR_STATE",
+    "READ_JOURNAL",
+    "READ_RUNTIME_TREE",
+    "READ_CODEX_METADATA",
+    "READ_GIT_WORKTREE_STATE"
+  ],
+  "alternatives": [
+    {
+      "label": "Request missing context",
+      "summary": "If metadata is unavailable or access is denied or partial, ask the caller for a sanitized evidence summary and regenerate from a new self-contained incident.",
+      "confidence": 0.85
+    }
+  ],
+  "confidence": 0.92,
+  "resilience": {
+    "fallback_available": true,
+    "summary": "Preserve uncertainty if evidence cannot be recovered. Return a context request; do not infer a cause or bypass a denied capability."
+  },
+  "requires": {
+    "mutation": false,
+    "retry": false,
+    "human": false
+  },
+  "recommended_next_step": "Investigate the cause of the three worker failures while preserving runtime and worktree, without starting another attempt. The caller must evaluate each proposed evidence access against its policies."
+}

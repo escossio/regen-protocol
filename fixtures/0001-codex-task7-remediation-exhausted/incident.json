@@ -1,0 +1,53 @@
+{
+  "protocol_version": "0",
+  "message_type": "INCIDENT",
+  "incident_id": "0001-codex-task7-remediation-exhausted",
+  "source": {
+    "system": "andy-codex-supervisor"
+  },
+  "occurred_at": "2026-09-13T16:04:11.743352+00:00",
+  "summary": "Task 7 stopped after three unsuccessful Codex worker attempts without reaching local verification.",
+  "state": {
+    "status": "BLOCKED",
+    "phase": "BLOCKED",
+    "task_id": "7",
+    "last_error_code": "REMEDIATION_BUDGET_EXHAUSTED",
+    "codex_cycles_used": 3,
+    "task_remediations": 2
+  },
+  "facts": {
+    "verify_local_reached": false,
+    "changed_paths": [],
+    "candidate_sha": null,
+    "pr_number": null,
+    "merge_sha": null,
+    "worktree_clean": true,
+    "head_equals_base_sha": true,
+    "original_worker_failure_preserved": false,
+    "last_message_present": false
+  },
+  "unknowns": [
+    "The original worker failure and root cause are unknown.",
+    "It is not yet known whether useful Codex logs or metadata remain for the attempt window."
+  ],
+  "capabilities": {
+    "available": [
+      "READ_SUPERVISOR_STATE",
+      "READ_JOURNAL",
+      "READ_RUNTIME_TREE",
+      "READ_CODEX_METADATA",
+      "READ_GIT_WORKTREE_STATE"
+    ],
+    "denied": [
+      "MUTATE_ENVIRONMENT",
+      "RETRY_CODEX_WORKER"
+    ],
+    "unavailable": []
+  },
+  "constraints": {
+    "mutation_allowed": false,
+    "retry_allowed": false,
+    "human_approval_required": false
+  },
+  "desired_outcome": "Safely determine why the Codex worker failed before VERIFY_LOCAL without executing another attempt."
+}
