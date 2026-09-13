@@ -48,6 +48,10 @@ with a Draft 2020-12 validator configured to check `date-time` formats.
 
 ## Reference Runtime V0
 
+This section describes the original V0 baseline. Operational Service V0.1 below
+adds authenticated HTTP and audit persistence; its deployment contract supersedes
+the original no-volume and unauthenticated HTTP setup. The reasoning core is unchanged.
+
 Python >=3.12 reference implementation: normative input validation → shared engine
 → one reasoning provider call → normative output validation → deterministic
 Policy Guard → accepted DecisionEnvelope. CLI and HTTP use this exact pipeline.
@@ -159,3 +163,79 @@ Supervisor or Attention Router. Runtime design and plan are in
 and [implementation plan](docs/superpowers/plans/2026-09-13-regen-reference-runtime-v0.md).
 
 Licensed under the [MIT License](LICENSE).
+
+
+## Operational Service V0.1
+
+REGEN separates **stateless reasoning** from **persistent operational audit**.
+The caller owns reasoning history. The service may own operational audit history.
+Audit history is observable service data. It is never implicit reasoning context.
+The engine, policy and provider never import or query the audit store. A later
+request receives only its own IncidentEnvelope, even after restart.
+
+### Authenticated deployment
+
+HTTP now requires an externally configured `REGEN_API_TOKEN` for POST /v0/decide
+and both exchange query endpoints. Send it as a Bearer Authorization header;
+never put it in URLs, logs or Git. Missing and incorrect tokens both return 401
+`{"error":"unauthorized"}`. CLI remains an independent offline/one-call adapter;
+the HTTP audit contract does not introduce implicit CLI history.
+
+Additional settings:
+
+| Variable | Default |
+| --- | --- |
+| `REGEN_API_TOKEN` | absent; required for protected routes |
+| `REGEN_AUDIT_DB_PATH` | `/data/regen-audit.sqlite3` |
+| `REGEN_AUDIT_DIR` | `./.runtime/audit` |
+| `REGEN_BIND_IP` | `127.0.0.1` |
+| `REGEN_HOST_PORT` | `18200` |
+
+Create the dedicated audit directory with ownership matching the image user
+(UID/GID 10001) and restrictive permissions before `docker compose up -d regen`.
+Only that directory is mounted RW at /data. The root filesystem stays read-only,
+with /tmp ephemeral, no-new-privileges and all capabilities dropped. The approved
+AGT01 deployment uses the separately validated SSD mount /midia, dedicated
+/midia/regen-protocol, and LAN binding 192.168.88.2:18210. Public Compose defaults
+remain localhost. Do not mount entire storage roots or other project directories.
+
+Keep deployment `.env` mode 0600 and ignored. Configure a cryptographically random
+API token with at least 32 bytes of entropy. Never dump Compose environment or
+container Environment. Plain HTTP bearer auth is for a trusted LAN only; this
+version adds no TLS, public firewall/NAT rule or Internet publication.
+
+Health is public and returns 200 without secrets. Readiness is public but only
+returns 200 with valid configuration, OpenAI key, API token and writable SQLite.
+It does not invoke OpenAI or create a fake exchange.
+
+### Exchanges and durability
+
+A valid authenticated incident is committed as RECEIVED before any provider call.
+If insertion fails, inference is not started. The same UUID exchange is finalized
+as COMPLETED, PROVIDER_ERROR, PROVIDER_TIMEOUT, DECISION_REJECTED or CONFIG_ERROR.
+SQLite uses schema version 1 and synchronous FULL transactions. Audit finalization
+failure returns 503 audit_failure, logs only a fixed code and never retries the
+provider; incomplete RECEIVED records remain visible. They are not auto-repaired.
+
+POST still returns only the normative DecisionEnvelope. The response header
+`X-REGEN-Exchange-ID` links it to the operational record; errors after creation
+also carry that header. Invalid input returns 400 without an exchange.
+
+- `GET /v0/exchanges`: authenticated metadata list, newest first. `limit` defaults
+  to 50 (1..100), `offset` to 0. Optional exact filters: incident_id, source_system,
+  decision_class and status. No full envelopes appear in list responses.
+- `GET /v0/exchanges/{exchange_id}`: metadata plus `incident` and `decision`
+  objects (decision null on failure). Unknown ID returns 404 exchange_not_found.
+
+Audit persists across container restarts. There is no automatic retention policy.
+The operator controls file access and lifecycle. Only validated envelopes and
+selected metadata are stored, not headers, prompts, raw provider responses,
+tracebacks, environment or private reasoning. Obvious sensitive fields, credential
+patterns and configured secret values are rejected rather than redacted silently.
+Callers must still sanitize evidence: arbitrary encoded sensitive text cannot be
+reliably recognized by such a screen. Query access grants access to all exchanges;
+there is no per-caller tenancy in V0.1.
+
+No integration with Supervisor or Attention Router and no automatic execution is
+introduced. Audit records can be read by an authorized caller, but the service
+never appends them to a model request automatically.
