@@ -13,6 +13,8 @@ class ConfigurationError(Exception):
 @dataclass(frozen=True)
 class Settings:
     api_key: str | None = field(default=None, repr=False)
+    api_token: str | None = field(default=None, repr=False)
+    audit_db_path: str = "/data/regen-audit.sqlite3"
     model: str = "gpt-6-astra"
     reasoning_effort: str = "high"
     timeout_seconds: float = 120
@@ -32,6 +34,8 @@ class Settings:
         try:
             return cls(
                 api_key=os.environ.get("OPENAI_API_KEY"),
+                api_token=os.environ.get("REGEN_API_TOKEN"),
+                audit_db_path=os.environ.get("REGEN_AUDIT_DB_PATH", "/data/regen-audit.sqlite3"),
                 model=os.environ.get("REGEN_OPENAI_MODEL", "gpt-6-astra"),
                 reasoning_effort=os.environ.get("REGEN_OPENAI_REASONING_EFFORT", "high"),
                 timeout_seconds=float(os.environ.get("REGEN_OPENAI_TIMEOUT_SECONDS", "120")),

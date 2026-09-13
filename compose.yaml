@@ -4,13 +4,17 @@ services:
     container_name: regen-protocol
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${REGEN_HOST_PORT:-18200}:8080"
+      - "${REGEN_BIND_IP:-127.0.0.1}:${REGEN_HOST_PORT:-18200}:8080"
     environment:
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       REGEN_OPENAI_MODEL: "${REGEN_OPENAI_MODEL:-gpt-6-astra}"
       REGEN_OPENAI_REASONING_EFFORT: "${REGEN_OPENAI_REASONING_EFFORT:-high}"
       REGEN_OPENAI_TIMEOUT_SECONDS: "${REGEN_OPENAI_TIMEOUT_SECONDS:-120}"
       REGEN_LOG_LEVEL: "${REGEN_LOG_LEVEL:-INFO}"
+      REGEN_API_TOKEN: "${REGEN_API_TOKEN:-}"
+      REGEN_AUDIT_DB_PATH: "${REGEN_AUDIT_DB_PATH:-/data/regen-audit.sqlite3}"
+    volumes:
+      - "${REGEN_AUDIT_DIR:-./.runtime/audit}:/data"
     read_only: true
     tmpfs:
       - /tmp
