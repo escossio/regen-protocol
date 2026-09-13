@@ -239,3 +239,22 @@ there is no per-caller tenancy in V0.1.
 No integration with Supervisor or Attention Router and no automatic execution is
 introduced. Audit records can be read by an authorized caller, but the service
 never appends them to a model request automatically.
+
+
+### Caller credential provisioning
+
+REGEN_API_TOKEN is a service deployment secret. Authoritative local deployment
+env: `/srv/projetos/regen-protocol/.env`. This local file configures the service;
+Docker Compose consuming it does not export its variables to host-side callers.
+
+A same-host caller explicitly authorized to use this source may project only
+REGEN_API_TOKEN into its invocation environment. Require exactly one valid,
+nonempty definition and reject duplicates. Do not print the credential, pass it
+in argv or persist another copy. Never give OPENAI_API_KEY to a caller, copy or
+source the entire `.env`, or depend on generic secret discovery. Configure the
+non-secret service URL separately. The host-side Supervisor does not load `.env`
+automatically and must not create a duplicate local secret file.
+
+A protected read-only exchange query can validate the projection before inference.
+Remote callers will require an explicitly designed credential distribution or
+identity mechanism; this same-host authorization does not establish one.
