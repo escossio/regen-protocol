@@ -38,6 +38,9 @@ def test_actual_sdk_request_contract_and_no_retry():
     assert "requested_evidence and recommended_next_step never execute actions" in body[
         "instructions"
     ]
+    assert "A new caller-bound capability action is not a retry" in body["instructions"]
+    assert "requires.retry describes reissuing a prior operation" in body["instructions"]
+    assert "capability_semantics" in body["instructions"]
     for forbidden in ("tools", "conversation", "previous_response_id", "background", "stream"):
         assert forbidden not in body
     assert json.loads(body["input"]) == incident()
