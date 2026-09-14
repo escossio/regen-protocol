@@ -67,6 +67,11 @@ All top-level fields are required:
 
 The caller remains responsible for the meaning and scope of capability names.
 Availability is not unrestricted authority and cannot override a constraint.
+`retry_allowed` governs reissuing an operation whose effect identity already
+exists, whether its result is known or uncertain. It does not govern a new
+caller-bound capability action with a new fingerprint, durable intent,
+execution identity, and result. Provider transport retries and later REGEN
+rounds are separate mechanisms; neither is authorized by this flag.
 
 ## 6. DecisionEnvelope V0
 
