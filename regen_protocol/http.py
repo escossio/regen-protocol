@@ -68,6 +68,7 @@ def create_app(settings: Settings | None = None, *, provider_factory=OpenAIProvi
         except AuditError:
             return error('audit_failure', 503)
         result, status, http_status, code = None, 'COMPLETED', 200, None
+        audit_code = None
         try:
             config = settings or Settings.from_env()
             config.require_ready()
@@ -78,8 +79,9 @@ def create_app(settings: Settings | None = None, *, provider_factory=OpenAIProvi
             status, http_status, code = 'CONFIG_ERROR', 503, 'not_ready'
         except ProviderTimeout:
             status, http_status, code = 'PROVIDER_TIMEOUT', 504, 'provider_timeout'
-        except PolicyError:
+        except PolicyError as policy_error:
             status, http_status, code = 'DECISION_REJECTED', 422, 'policy_rejected'
+            audit_code = policy_error.reason_code
         except (ContractError, AuditError):
             status, http_status, code = 'DECISION_REJECTED', 502, 'invalid_decision'
         except ProviderError:
@@ -89,7 +91,8 @@ def create_app(settings: Settings | None = None, *, provider_factory=OpenAIProvi
         try:
             audit.finish(key, status=status, http_status=http_status,
                          duration_ms=int((time.monotonic() - started) * 1000),
-                         decision=result if status == 'COMPLETED' else None, error_code=code)
+                         decision=result if status == 'COMPLETED' else None,
+                         error_code=audit_code or code)
         except AuditError:
             logging.getLogger(__name__).error('audit_finalize_failed')
             return error('audit_failure', 503, key)

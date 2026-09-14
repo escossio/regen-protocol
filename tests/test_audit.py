@@ -11,11 +11,17 @@ def test_audit_roundtrip_indexes_and_pagination(tmp_path):
     store.check()
     ids = [store.receive(incident(), provider='openai', model='test') for _ in range(3)]
     assert store.detail(ids[0])['status'] == 'RECEIVED'
+    errors = {
+        'PROVIDER_ERROR': 'provider_failure',
+        'PROVIDER_TIMEOUT': 'provider_timeout',
+        'DECISION_REJECTED': 'invalid_decision',
+        'CONFIG_ERROR': 'not_ready',
+    }
     for status in ('COMPLETED', 'PROVIDER_ERROR', 'PROVIDER_TIMEOUT', 'DECISION_REJECTED', 'CONFIG_ERROR'):
         key = store.receive(incident(), provider='openai', model='test')
         store.finish(key, status=status, http_status=200 if status == 'COMPLETED' else 502,
                      duration_ms=7, decision=decision() if status == 'COMPLETED' else None,
-                     error_code=None if status == 'COMPLETED' else 'failure')
+                     error_code=errors.get(status))
         row = store.detail(key)
         assert row['status'] == status and row['incident'] == incident()
         assert row['decision'] == (decision() if status == 'COMPLETED' else None)
@@ -67,3 +73,38 @@ def test_failed_finalize_rolls_back_and_survives_reopen(tmp_path):
     row = AuditStore(store.path).detail(key)
     assert row['status'] == 'RECEIVED' and row['decision'] is None
     assert row['completed_at'] is None
+
+
+def test_rejected_exchange_persists_only_closed_policy_diagnostic(tmp_path):
+    store = AuditStore(tmp_path / 'audit.db')
+    key = store.receive(incident(), provider='openai', model='test')
+
+    store.finish(
+        key,
+        status='DECISION_REJECTED',
+        http_status=422,
+        duration_ms=7,
+        error_code='POLICY_REJECTED_RETRY_NOT_ALLOWED',
+    )
+
+    row = store.detail(key)
+    assert row['error_code'] == 'POLICY_REJECTED_RETRY_NOT_ALLOWED'
+    assert row['decision'] is None
+    assert 'rationale_summary' not in str(row)
+
+
+def test_audit_rejects_arbitrary_error_text_without_persisting_it(tmp_path):
+    store = AuditStore(tmp_path / 'audit.db')
+    key = store.receive(incident(), provider='openai', model='test')
+
+    with pytest.raises(AuditError):
+        store.finish(
+            key,
+            status='DECISION_REJECTED',
+            http_status=422,
+            duration_ms=7,
+            error_code='PRIVATE_ARBITRARY_MODEL_TEXT',
+        )
+
+    assert store.detail(key)['status'] == 'RECEIVED'
+    assert b'PRIVATE_ARBITRARY_MODEL_TEXT' not in store.path.read_bytes()

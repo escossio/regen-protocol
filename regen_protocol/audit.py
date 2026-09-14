@@ -8,11 +8,19 @@ from pathlib import Path
 from uuid import uuid4
 
 from regen_protocol.contracts import validate_decision, validate_incident
+from regen_protocol.policy import POLICY_REASON_CODES
 
 META = ('exchange_id', 'received_at', 'completed_at', 'status', 'source_system',
         'source_instance', 'incident_id', 'decision_id', 'decision_class', 'provider',
         'model', 'duration_ms', 'http_status', 'error_code')
 TERMINAL = {'COMPLETED', 'PROVIDER_ERROR', 'PROVIDER_TIMEOUT', 'DECISION_REJECTED', 'CONFIG_ERROR'}
+SAFE_ERROR_CODES = POLICY_REASON_CODES | {
+    'not_ready',
+    'provider_timeout',
+    'invalid_decision',
+    'provider_failure',
+    'internal_failure',
+}
 
 
 class AuditError(Exception):
@@ -105,6 +113,8 @@ class AuditStore:
 
     def finish(self, key, *, status, http_status, duration_ms, decision=None, error_code=None):
         if status not in TERMINAL or (status == 'COMPLETED') != (decision is not None):
+            raise AuditError()
+        if error_code is not None and error_code not in SAFE_ERROR_CODES:
             raise AuditError()
         payload = None
         if decision is not None:
