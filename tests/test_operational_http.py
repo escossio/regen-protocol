@@ -30,6 +30,7 @@ def client(tmp_path, mode='valid', store=None, key='test-key', token='test-beare
         output['incident_id'] = incident['incident_id']
         if mode == 'policy':
             output['requires']['mutation'] = True
+            output['rationale_summary'] = 'PRIVATE_REJECTED_CANDIDATE_SENTINEL'
         if mode == 'invalid':
             return {}
         return output
@@ -55,6 +56,16 @@ def test_exchange_terminal_and_headers(tmp_path, mode, http, status):
     assert row['completed_at'] and row['duration_ms'] >= 0
     if http == 200:
         assert row['decision'] == response.json()
+    if mode == 'policy':
+        assert response.json() == {'error': 'policy_rejected'}
+        assert row['error_code'] == 'POLICY_REJECTED_MUTATION_NOT_ALLOWED'
+        detail = c.get('/v0/exchanges/' + key, headers=AUTH)
+        assert detail.status_code == 200
+        assert detail.json()['error_code'] == 'POLICY_REJECTED_MUTATION_NOT_ALLOWED'
+        assert detail.json()['decision'] is None
+        assert row['decision'] is None
+        assert 'PRIVATE_REJECTED_CANDIDATE_SENTINEL' not in str(row)
+        assert b'PRIVATE_REJECTED_CANDIDATE_SENTINEL' not in store.path.read_bytes()
 
 
 @pytest.mark.parametrize('endpoint', ['/v0/decide', '/v0/exchanges', '/v0/exchanges/missing'])
