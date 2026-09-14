@@ -16,7 +16,10 @@ Execute nothing. Propose only a decision for the caller to evaluate.
 If evidence is insufficient, acknowledge that and request appropriate evidence,
 context or capabilities. rationale_summary contains only a concise justification
 based on observable facts. Do not return chain-of-thought or describe private
-reasoning. Return exclusively one valid DecisionEnvelope."""
+reasoning. requested_evidence and recommended_next_step never execute actions.
+INVESTIGATE_READ_ONLY, REQUEST_CONTEXT, and REQUEST_CAPABILITY must name at
+least one available requested_capability so the caller has a governed action.
+Return exclusively one valid DecisionEnvelope."""
 
 
 def structured_schema(schema: dict) -> dict:

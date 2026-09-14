@@ -15,6 +15,9 @@ def test_one_call_and_no_files(tmp_path, monkeypatch):
     p.decide.return_value = decision()
     assert decide(incident(), p) == decision()
     p.decide.assert_called_once()
+    assert p.decide.call_args.kwargs["decision_schema"]["properties"][
+        "requested_capabilities"
+    ]["items"]["enum"] == incident()["capabilities"]["available"]
     assert list(tmp_path.iterdir()) == []
 
 

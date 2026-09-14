@@ -35,6 +35,9 @@ def test_actual_sdk_request_contract_and_no_retry():
     assert body["store"] is False
     assert body["text"]["format"]["type"] == "json_schema"
     assert body["text"]["format"]["strict"] is True
+    assert "requested_evidence and recommended_next_step never execute actions" in body[
+        "instructions"
+    ]
     for forbidden in ("tools", "conversation", "previous_response_id", "background", "stream"):
         assert forbidden not in body
     assert json.loads(body["input"]) == incident()

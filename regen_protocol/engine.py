@@ -10,7 +10,8 @@ def decide(incident: dict, provider: ReasoningProvider) -> dict:
     trusted_incident = deepcopy(incident)
     try:
         candidate = provider.decide(
-            incident=deepcopy(trusted_incident), decision_schema=load_schema("decision")
+            incident=deepcopy(trusted_incident),
+            decision_schema=_decision_schema(trusted_incident),
         )
     except ProviderError:
         raise
@@ -21,3 +22,13 @@ def decide(incident: dict, provider: ReasoningProvider) -> dict:
     validate_decision(candidate)
     guard(trusted_incident, candidate)
     return candidate
+
+
+def _decision_schema(incident: dict) -> dict:
+    schema = load_schema("decision")
+    available = incident["capabilities"]["available"]
+    if available:
+        schema["properties"]["requested_capabilities"]["items"]["enum"] = list(
+            available
+        )
+    return schema

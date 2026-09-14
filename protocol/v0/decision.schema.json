@@ -40,12 +40,14 @@
     },
     "requested_evidence": {
       "type": "array",
+      "description": "Informational evidence descriptions only; these strings do not execute collection.",
       "items": {
         "type": "string"
       }
     },
     "requested_capabilities": {
       "type": "array",
+      "description": "Typed caller actions. Non-terminal investigation, context, and capability-request decisions require at least one available entry under deterministic policy.",
       "items": {
         "type": "string"
       }

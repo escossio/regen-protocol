@@ -171,6 +171,29 @@ def test_provider_secret_output_rejected_without_persistence(tmp_path):
     assert b'test-bearer' not in store.path.read_bytes()
 
 
+def test_inert_investigation_is_rejected_once_without_candidate_persistence(tmp_path):
+    c, store, provider = client(tmp_path)
+    output = decision()
+    output['requested_capabilities'] = []
+    output['requested_evidence'] = ['The recorded verifier result.']
+    output['recommended_next_step'] = 'Use READ_VERIFIER_RESULT without requesting it.'
+    output['rationale_summary'] = 'PRIVATE_INERT_CANDIDATE_SENTINEL'
+    provider.decide.side_effect = None
+    provider.decide.return_value = output
+
+    response = c.post('/v0/decide', headers=AUTH, json=incident())
+
+    assert response.status_code == 422
+    assert response.json() == {'error': 'policy_rejected'}
+    assert provider.decide.call_count == 1
+    row = store.detail(response.headers['X-REGEN-Exchange-ID'])
+    assert row['status'] == 'DECISION_REJECTED'
+    assert row['error_code'] == 'POLICY_REJECTED_INVESTIGATION_WITHOUT_CAPABILITY'
+    assert row['decision'] is None
+    assert 'PRIVATE_INERT_CANDIDATE_SENTINEL' not in str(row)
+    assert b'PRIVATE_INERT_CANDIDATE_SENTINEL' not in store.path.read_bytes()
+
+
 def test_unexpected_exception_is_sanitized_and_audited(tmp_path, caplog):
     c, store, provider = client(tmp_path)
     provider.decide.side_effect = RuntimeError('test-key test-bearer prompt traceback environment')
